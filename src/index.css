@@ -1,0 +1,186 @@
+@import 'tailwindcss';
+@import '@fontsource-variable/inter';
+@import '@fontsource/barlow-condensed/600.css';
+@import '@fontsource/barlow-condensed/700.css';
+@import '@fontsource/barlow-condensed/800.css';
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-surface2: var(--surface2);
+  --color-line: var(--line);
+  --color-ink: var(--ink);
+  --color-muted: var(--muted);
+  --color-accent: var(--accent);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-danger: var(--danger);
+  --color-warn: var(--warn);
+  --font-sans: 'Inter Variable', ui-sans-serif, -apple-system, 'SF Pro Text', system-ui, sans-serif;
+  --font-display: 'Barlow Condensed', 'Inter Variable', ui-sans-serif, system-ui, sans-serif;
+}
+
+:root {
+  --bg: #0a0a0b;
+  --surface: #141416;
+  --surface2: #1d1d20;
+  --line: #2a2a2f;
+  --ink: #f4f4f5;
+  --muted: #9b9ba5;
+  --accent: #2dff6e;
+  --accent-ink: #04130a;
+  --accent-soft: rgba(45, 255, 110, 0.12);
+  --danger: #ff6161;
+  --warn: #ffb84d;
+  color-scheme: dark;
+}
+:root[data-theme='light'] {
+  --bg: #f3f4f6;
+  --surface: #ffffff;
+  --surface2: #eceef1;
+  --line: #d9dce1;
+  --ink: #0e0f11;
+  --muted: #5a606b;
+  --accent: #0b9d44;
+  --accent-ink: #ffffff;
+  --accent-soft: rgba(11, 157, 68, 0.12);
+  --danger: #d12f2f;
+  --warn: #b86e00;
+  color-scheme: light;
+}
+
+html,
+body,
+#root {
+  min-height: 100dvh;
+}
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -webkit-tap-highlight-color: transparent;
+  overscroll-behavior-y: none;
+  font-size: 16px;
+  line-height: 1.45;
+}
+input,
+textarea,
+select,
+button {
+  font: inherit;
+  color: inherit;
+}
+.num {
+  font-variant-numeric: tabular-nums;
+}
+.display {
+  font-family: var(--font-display);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+}
+
+@layer components {
+  .card {
+    @apply rounded-2xl border border-line bg-surface;
+  }
+  .btn {
+    @apply inline-flex min-h-12 select-none items-center justify-center gap-2 rounded-xl px-4 text-base font-semibold transition active:scale-[0.98] disabled:opacity-40;
+  }
+  .btn-primary {
+    @apply inline-flex min-h-12 select-none items-center justify-center gap-2 rounded-xl px-4 text-base font-semibold transition active:scale-[0.98] disabled:opacity-40 bg-accent text-accent-ink;
+  }
+  .btn-soft {
+    @apply inline-flex min-h-12 select-none items-center justify-center gap-2 rounded-xl px-4 text-base font-semibold transition active:scale-[0.98] disabled:opacity-40 bg-surface2 text-ink;
+  }
+  .btn-ghost {
+    @apply inline-flex min-h-12 select-none items-center justify-center gap-2 rounded-xl px-4 text-base font-semibold transition active:scale-[0.98] disabled:opacity-40 border border-line bg-transparent text-ink;
+  }
+  .btn-danger {
+    @apply inline-flex min-h-12 select-none items-center justify-center gap-2 rounded-xl px-4 text-base font-semibold transition active:scale-[0.98] disabled:opacity-40 bg-danger/15 text-danger;
+  }
+  .btn-sm {
+    @apply min-h-10 rounded-lg px-3 text-sm;
+  }
+  .input {
+    @apply min-h-12 w-full rounded-xl border border-line bg-surface2 px-3 text-base text-ink outline-none transition placeholder:text-muted/60 focus:border-accent;
+  }
+  .input-num {
+    @apply min-h-12 w-full rounded-xl border border-line bg-surface2 px-3 text-base text-ink outline-none transition placeholder:text-muted/60 focus:border-accent tabular-nums text-center text-lg font-semibold;
+  }
+  .chip {
+    @apply inline-flex items-center gap-1 rounded-full bg-surface2 px-2.5 py-1 text-xs font-medium text-muted;
+  }
+  .chip-accent {
+    @apply inline-flex items-center gap-1 rounded-full bg-surface2 px-2.5 py-1 text-xs font-medium text-muted !bg-accent-soft !text-accent;
+  }
+  .label {
+    @apply mb-1 block text-xs font-medium uppercase tracking-wide text-muted;
+  }
+  .h-section {
+    @apply mb-2 mt-6 text-xs font-semibold uppercase tracking-widest text-muted;
+  }
+}
+
+@keyframes pop {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+@keyframes fade {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+@keyframes pulse-ring {
+  0%,
+  100% {
+    box-shadow: 0 0 0 0 var(--accent-soft);
+  }
+  50% {
+    box-shadow: 0 0 0 8px transparent;
+  }
+}
+.anim-pop {
+  animation: pop 0.2s ease-out;
+}
+.anim-fade {
+  animation: fade 0.2s ease-out;
+}
+.pulse {
+  animation: pulse-ring 1.6s ease-in-out infinite;
+}
+@media (prefers-reduced-motion: reduce) {
+  .anim-pop,
+  .anim-fade,
+  .pulse {
+    animation: none;
+  }
+}
+
+.safe-top {
+  padding-top: env(safe-area-inset-top);
+}
+.safe-bottom {
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* esconder setas dos inputs numéricos */
+input[type='number']::-webkit-outer-spin-button,
+input[type='number']::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  margin: 0;
+}
+
+:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
