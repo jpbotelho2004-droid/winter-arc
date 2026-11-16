@@ -8,6 +8,7 @@ import { beep, notify, vibrate } from '../lib/alerts'
 import { clock } from '../lib/calc'
 import { useActiveSession, useNow } from '../hooks/hooks'
 import { useToast } from './ui'
+import { VariantPickerHost } from './VariantPicker'
 
 const TABS = [
   { to: '/', label: 'Início', icon: Home, end: true },
@@ -157,6 +158,7 @@ export function Layout() {
       <MiniBar />
       <RestAlerts />
       <UpdatePrompt />
+      <VariantPickerHost />
 
       <nav
         aria-label="Navegação principal"

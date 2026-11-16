@@ -1,6 +1,6 @@
 # WINTER ARC — ATHLETIC PERFORMANCE
 
-PWA pessoal de treino (iPhone primeiro): plano semanal oficial, programa de 12 semanas em 3 fases, registo de treino ao estilo Hevy, evolução de força e de performance atlética, corpo, nutrição, recuperação e relatórios de texto para o ChatGPT.
+PWA pessoal de treino (iPhone primeiro): plano semanal oficial, programa de 12 semanas em 4 fases, registo de treino ao estilo Hevy, evolução de força e de performance atlética, corpo, nutrição, recuperação e relatórios de texto para o ChatGPT.
 
 - **Sem conta, sem servidor, sem custos.** Todos os dados ficam na base de dados do teu navegador (IndexedDB).
 - **Funciona offline** depois da primeira abertura (service worker + pré-cache).
@@ -79,10 +79,10 @@ Perfil → **Cópia de segurança**:
 | Área | O que faz |
 | --- | --- |
 | **Início** | Saudação, semana/fase, treino de hoje com "Iniciar treino", faixa da semana com estado de cada dia (planeado/concluído/parcial/falhado/adiado/descanso), resumo semanal, evolução de força, objetivos, recuperação, próxima sessão, atalho do relatório semanal, retoma de sessão em curso. |
-| **Treinar** | Plano semanal oficial (Seg Natação · Ter Upper Strength · Qua Lower Strength + Pliometria · Qui Upper Hypertrophy · Sex Speed & Agility · Sáb Lower Power + Hypertrophy · Dom Descanso) com séries/reps exatas; iniciar qualquer treino; treino livre; editor de treinos; biblioteca de exercícios. |
+| **Treinar** | Plano semanal oficial v2 (Seg Natação · Ter Push · Qua Pull · Qui Lower Strength & Vertical Jump · Sex Upper Hypertrophy & Core, com cardio opcional · Sáb Lower Hypertrophy & Explosive Speed, com variante A saltos / B sprints · Dom Descanso), com séries/reps ajustadas à fase; iniciar qualquer treino; treino livre; editor de treinos; biblioteca de exercícios. |
 | **Sessão ativa** | kg/reps/RPE/RIR, tipo de série (aquecimento/normal/dropset/falha), valores da sessão anterior como referência (toque para copiar), temporizador de descanso por *timestamps* (sobrevive a recargas e ao ecrã bloqueado), som/vibração/notificação, auto‑guardar a cada alteração, retomar sessão interrompida, descartar com confirmação, adicionar/substituir/reordenar exercícios, sugestão de progressão dupla (nunca aplicada automaticamente). |
 | **Registo atlético** | Saltos (altura/distância, aterragem 1–5), sprints (distância, tempo, intensidade), agilidade (percurso + tempo), natação (piscinas, distância, tempo total/efetivo, ritmo médio, estilo, pausas, RPE). |
-| **Programa** | 12 semanas, 3 fases (Readaptação → Desenvolvimento → Performance). A fase **não** depende só da data: podes prolongar fases. Volume ajustado por fase sem alterar o teu plano. A pliometria só sobe de nível quando confirmas. |
+| **Programa** | 12 semanas, 4 fases (Readaptação 1–2 → Construção 3–4 → Desenvolvimento 5–8 → Performance 9–12). A fase **não** depende só da data: podes prolongar fases e reduzir o volume em caso de fadiga/dor. As séries prescritas adaptam-se à fase sem alterar o teu plano. A pliometria só sobe de nível quando confirmas. |
 | **Evolução** | Resumo; força por exercício (carga, melhor série, volume, e1RM *estimado* só para 1–10 reps); corpo (peso, média semanal, medidas, comparação de períodos, fotografias); performance atlética (valores medidos, protocolos separados — sprint 10 m ≠ 20 m); recordes (só valores reais); índice atlético interno opcional e transparente. |
 | **Nutrição** | Metas 2600 kcal / 160 g P / 75 g G / 320 g H (editáveis), diário por refeição, alimentos próprios, refeições frequentes, água, creatina/suplementos, histórico. "Sem registo" nunca é 0. |
 | **Recuperação** | Sono, fadiga, dor muscular, dor articular, stress, motivação, energia (1–5); sugestões prudentes (sem diagnósticos). |
@@ -114,3 +114,17 @@ docs           documentação (JSON, publicação, testes, manutenção)
 Documentação adicional: [`docs/PUBLICAR.md`](docs/PUBLICAR.md) · [`docs/RELATORIO-JSON.md`](docs/RELATORIO-JSON.md) · [`docs/MANUTENCAO.md`](docs/MANUTENCAO.md) · [`docs/TESTES.md`](docs/TESTES.md)
 
 > Esta app não substitui aconselhamento médico ou de um treinador. Se tiveres dor ou lesão, procura um profissional.
+
+
+## Atualização do programa (v2)
+
+O plano de treino foi substituído **sem reconstruir a app** nem apagar dados:
+
+- Os 5 modelos antigos ficam **arquivados** (não aparecem no calendário, mas o histórico mantém-se intacto e as sessões antigas guardam a sua própria cópia dos exercícios).
+- Os modelos novos são adicionados uma única vez (migração idempotente que corre ao abrir a app e após importar uma cópia de segurança antiga).
+- As fases passam de 3 para 4; as datas de fase já guardadas são convertidas (`[3,7]` → `[3,5,9]`).
+- Os ids dos exercícios equivalentes (supino, agachamento, leg curl, salto vertical, …) foram preservados, por isso o histórico, os recordes e os gráficos continuam ligados.
+- Exercícios opcionais (cardio de sexta) não contam para a conclusão da sessão.
+- Sábado pergunta a variante (A: Pogo + Broad Jump; B: acelerações + sprints curtos).
+- O salto vertical medido é a **altura do salto** (diferença entre alcance em pé e alcance no ponto mais alto); a altura da caixa do Box Jump é guardada à parte e nunca conta como salto.
+- Não há imagens demonstrativas nem links de vídeo diretos: cada exercício tem uma **pesquisa no YouTube** claramente rotulada.

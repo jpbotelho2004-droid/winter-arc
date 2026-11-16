@@ -68,7 +68,8 @@ export function TimeInput({ value, onChange, placeholder, className = '', label 
 function prevText(p: SetEntry | undefined, logType: SessionExercise['logType']): string {
   if (!p) return '—'
   if (logType === 'strength') return p.reps ? `${p.weightKg !== undefined ? fmt(p.weightKg, 2) : 'PC'}×${p.reps}` : '—'
-  if (logType === 'jump') return p.heightCm ? `${fmt(p.heightCm)}cm` : p.distanceCm ? `${fmt(p.distanceCm, 0)}cm` : p.reps ? `${p.reps} reps` : '—'
+  if (logType === 'jump') return p.heightCm ? `${fmt(p.heightCm)}cm` : p.distanceCm ? `${fmt(p.distanceCm, 0)}cm` : p.boxCm ? `cx ${fmt(p.boxCm, 0)}cm` : p.reps ? `${p.reps} reps` : '—'
+  if (logType === 'cardio') return p.timeS ? `${Math.round(p.timeS / 60)} min` : '—'
   if (logType === 'sprint') return p.timeS ? `${fmt(p.timeS, 2)}s` : '—'
   if (logType === 'agility') return p.timeS ? `${fmt(p.timeS, 2)}s` : '—'
   return '—'
@@ -106,6 +107,7 @@ function SetRow({
           ? 'grid-cols-[40px_minmax(0,1fr)_minmax(0,1.2fr)_minmax(0,0.9fr)_48px]'
           : 'grid-cols-[40px_minmax(0,1fr)_48px]'
   const jumpMetric = def?.metric === 'broad-jump' ? 'distanceCm' : 'heightCm'
+  const jumpInput = def?.jumpInput ?? 'height'
   const dim = set.done ? 'opacity-100' : ''
   return (
     <div className={`grid ${cols} items-center gap-1.5 ${dim}`} data-testid="set-row">
@@ -136,21 +138,36 @@ function SetRow({
       {lt === 'jump' && (
         <>
           <NumInput aria-label={`Repetições, série ${index + 1}`} testId={`reps-${index}`} decimals={false} value={set.reps} onChange={(v) => onPatch({ reps: v })} placeholder={ex.plan ? String(ex.plan.repMin) : 'reps'} max={50} />
-          <NumInput
-            aria-label={jumpMetric === 'heightCm' ? 'Altura em cm' : 'Distância em cm'}
-            testId={`jump-${index}`}
-            value={set[jumpMetric]}
-            onChange={(v) => onPatch({ [jumpMetric]: v } as Partial<SetEntry>)}
-            placeholder={prev && prevText(prev, lt) !== '—' ? prevText(prev, lt) : jumpMetric === 'heightCm' ? 'altura cm' : 'dist. cm'}
-            max={jumpMetric === 'heightCm' ? 200 : 800}
-          />
+          {jumpInput === 'box' ? (
+            <NumInput
+              aria-label="Altura da caixa em cm (não é a altura do salto)"
+              testId={`box-${index}`}
+              value={set.boxCm}
+              onChange={(v) => onPatch({ boxCm: v })}
+              placeholder="caixa cm"
+              max={150}
+            />
+          ) : jumpInput === 'none' ? (
+            <NumInput aria-label="Esforço 1 a 10" testId={`effort-${index}`} decimals={false} value={set.rpe} onChange={(v) => onPatch({ rpe: v })} placeholder="esforço" min={1} max={10} />
+          ) : (
+            <NumInput
+              aria-label={jumpMetric === 'heightCm' ? 'Altura do salto em cm' : 'Distância em cm'}
+              testId={`jump-${index}`}
+              value={set[jumpMetric]}
+              onChange={(v) => onPatch({ [jumpMetric]: v } as Partial<SetEntry>)}
+              placeholder={prev && prevText(prev, lt) !== '—' ? prevText(prev, lt) : jumpMetric === 'heightCm' ? 'altura cm' : 'dist. cm'}
+              max={jumpMetric === 'heightCm' ? 200 : 800}
+            />
+          )}
           <NumInput aria-label="Qualidade da aterragem 1 a 5" decimals={false} value={set.landing} onChange={(v) => onPatch({ landing: v })} placeholder="aterr." min={1} max={5} />
         </>
       )}
 
+      {lt === 'cardio' && <TimeInput label="Duração (mm:ss)" value={set.timeS} onChange={(v) => onPatch({ timeS: v })} placeholder="15:00" />}
+
       {lt === 'sprint' && (
         <>
-          <NumInput aria-label="Distância em metros" testId={`dist-${index}`} value={set.distanceM} onChange={(v) => onPatch({ distanceM: v })} placeholder="m" max={100000} />
+          <NumInput aria-label="Distância em metros" testId={`dist-${index}`} value={set.distanceM} onChange={(v) => onPatch({ distanceM: v })} placeholder={ex.exerciseId === 'sprint-20m' ? '20' : 'm'} max={100000} />
           <TimeInput label="Tempo em segundos" value={set.timeS} onChange={(v) => onPatch({ timeS: v })} placeholder={prev?.timeS ? `${fmt(prev.timeS, 2)}` : 'tempo s'} />
           <NumInput aria-label="Intensidade 1 a 10" decimals={false} value={set.rpe} onChange={(v) => onPatch({ rpe: v })} placeholder="int." min={1} max={10} />
         </>
@@ -339,6 +356,7 @@ function ExerciseCard({
       if (ex.logType === 'jump' && s.reps === undefined) msg = 'Indica o número de repetições do salto.'
       if (ex.logType === 'sprint' && (s.timeS === undefined || s.distanceM === undefined)) msg = 'Indica a distância e o tempo do sprint.'
       if (ex.logType === 'agility' && s.timeS === undefined) msg = 'Indica o tempo.'
+      if (ex.logType === 'cardio' && s.timeS === undefined) msg = 'Indica a duração (ou ignora o cardio, é opcional).'
       if (msg) return toast(msg, 'error')
     }
     update((x) => (readOnly ? updateSet(x, ex.id, setId, { done: !s.done, doneAt: !s.done ? Date.now() : undefined }) : toggleSetDone(x, ex.id, setId)))
@@ -359,6 +377,7 @@ function ExerciseCard({
             {ex.name}
           </Link>
           <p className="mt-0.5 text-xs text-muted">
+            {ex.optional && <span className="mr-1 rounded bg-surface2 px-1.5 py-0.5 font-semibold" data-testid="optional-chip">Opcional</span>}
             {planText && <span>{planText} · </span>}
             {ex.restSec > 0 && <span>descanso {clock(ex.restSec)} · </span>}
             <span className="num">
@@ -409,7 +428,15 @@ function ExerciseCard({
         </div>
       )}
 
-      {ex.logType !== 'checklist' && ex.logType !== 'swim' && (
+      {ex.logType === 'cardio' && (
+        <div className="mt-3 grid grid-cols-[40px_minmax(0,1fr)_48px] items-end gap-1.5 text-[10px] font-semibold uppercase tracking-wide text-muted">
+          <span className="text-center">#</span>
+          <span className="text-center">Duração</span>
+          <span />
+        </div>
+      )}
+
+      {ex.logType !== 'checklist' && ex.logType !== 'swim' && ex.logType !== 'cardio' && (
         <div
           className={`mt-3 grid items-end gap-1.5 px-0 text-[10px] font-semibold uppercase tracking-wide text-muted ${
             ex.logType === 'strength'
@@ -432,7 +459,7 @@ function ExerciseCard({
           {ex.logType === 'jump' && (
             <>
               <span className="text-center">Reps</span>
-              <span className="text-center">{def?.metric === 'broad-jump' ? 'Dist. cm' : 'Altura cm'}</span>
+              <span className="text-center">{def?.jumpInput === 'box' ? 'Caixa cm' : def?.jumpInput === 'none' ? 'Esforço' : def?.metric === 'broad-jump' ? 'Dist. cm' : 'Altura salto'}</span>
               <span className="text-center">Aterr.</span>
             </>
           )}

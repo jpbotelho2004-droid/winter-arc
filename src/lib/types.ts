@@ -2,7 +2,7 @@
 
 export type ISODate = string // YYYY-MM-DD (fuso Europe/Lisbon)
 
-export type LogType = 'strength' | 'jump' | 'sprint' | 'agility' | 'swim' | 'checklist'
+export type LogType = 'strength' | 'jump' | 'sprint' | 'agility' | 'swim' | 'checklist' | 'cardio'
 
 export type MuscleGroup =
   | 'peito'
@@ -53,6 +53,8 @@ export interface ExerciseDef {
   /** Incremento sugerido na progressão dupla (kg). */
   incrementKg?: number
   metric?: JumpMetric
+  /** O que se regista nos saltos: altura/distância do salto (por defeito), altura da caixa ('box') ou só esforço ('none'). */
+  jumpInput?: 'box' | 'none'
   /** Pesquisa de vídeo (nunca um URL inventado). */
   videoQuery: string
   compound?: boolean
@@ -78,6 +80,18 @@ export interface Plan {
   label?: string
 }
 
+export type PhaseNumber = 1 | 2 | 3 | 4
+export type Variant = 'A' | 'B'
+
+/** Prescrição específica de uma fase (substitui a regra genérica de volume). */
+export interface PhasePrescription {
+  sets?: number
+  repMin?: number
+  repMax?: number
+  label?: string
+  note?: string
+}
+
 export interface TemplateExercise {
   id: string
   exerciseId: string
@@ -87,6 +101,14 @@ export interface TemplateExercise {
   restSec: number
   label?: string
   notes?: string
+  /** Opcional: ignorá-lo não torna o treino incompleto (ex.: cardio no fim). */
+  optional?: boolean
+  /** Só entra na sessão na variante escolhida (treinos com variantes A/B). */
+  variant?: Variant
+  /** Só é incluído a partir desta fase do programa. */
+  fromPhase?: PhaseNumber
+  /** Prescrição por fase (sets/reps/label). */
+  phases?: Partial<Record<PhaseNumber, PhasePrescription>>
 }
 
 export interface WorkoutTemplate {
@@ -97,6 +119,10 @@ export interface WorkoutTemplate {
   /** 1 = segunda … 7 = domingo. Vazio = treino sem dia fixo. */
   weekday?: number
   durationLabel?: string
+  /** Treinos com duas variantes selecionáveis (ex.: sábado A = saltos, B = sprints). */
+  variants?: Record<Variant, string>
+  /** Versão do programa a que pertence (2 = programa atual). */
+  programV?: number
   exercises: TemplateExercise[]
   notes?: string
   archived?: boolean
@@ -118,6 +144,8 @@ export interface SetEntry {
   timeS?: number
   heightCm?: number
   distanceCm?: number
+  /** Altura da caixa (cm) nos saltos para caixa — NÃO é a altura do salto. */
+  boxCm?: number
   /** Qualidade da aterragem 1–5. */
   landing?: number
   restS?: number
@@ -138,6 +166,8 @@ export interface SessionExercise {
   course?: string
   /** Descrição da prescrição ajustada à fase (informativa). */
   phaseNote?: string
+  /** Opcional: não conta para o estado "concluído". */
+  optional?: boolean
 }
 
 export interface SwimData {
@@ -176,6 +206,12 @@ export interface Session {
   swim?: SwimData
   programWeek?: number
   phase?: number
+  /** Variante escolhida (treinos com variantes). */
+  variant?: Variant
+  /** Séries obrigatórias planeadas (para a fase), guardadas ao terminar; exclui exercícios opcionais. */
+  plannedSets?: number
+  /** 2 = sessão criada com o programa v2 (fases 1–4). Ausente = programa anterior (fases 1–3). */
+  programV?: number
   planned?: boolean
   rest?: RestTimer
   updatedAt: number
@@ -323,14 +359,18 @@ export interface Settings {
   supplements: SupplementDef[]
   program: {
     startDate: ISODate
-    /** Semanas (1-based) em que começam as fases 2 e 3. */
-    phaseStarts: [number, number]
+    /** Semanas (1-based) em que começam as fases 2, 3 e 4. */
+    phaseStarts: [number, number, number]
     /** Nível de pliometria confirmado pelo utilizador (1–3). */
     plyoLevel: 1 | 2 | 3
+    /** Semana de volume reduzido (fadiga elevada / dor articular): menos 1 série por exercício. */
+    reduceVolume?: boolean
   }
   /** Metas definidas pelo utilizador por métrica (ex.: { 'vertical-jump': 55 }). */
   targets?: Record<string, number>
   scoreEnabled: boolean
+  /** Versão do programa de treino instalada (2 = programa atual). */
+  programVersion?: number
   onboarded: boolean
   lastBackupAt?: number
   updatedAt: number

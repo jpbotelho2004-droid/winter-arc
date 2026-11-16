@@ -79,9 +79,10 @@ export function setText(s: SetEntry, ex: SessionExercise): string {
     }
     case 'jump': {
       if (s.reps !== undefined) bits.push(`${s.reps} reps`)
-      if (s.heightCm !== undefined) bits.push(`altura ${fmt(s.heightCm)} cm`)
+      if (s.heightCm !== undefined) bits.push(`altura do salto ${fmt(s.heightCm)} cm`)
       else if (s.distanceCm !== undefined) bits.push(`distância ${fmt(s.distanceCm, 0)} cm`)
-      else bits.push('altura/distância não medida')
+      else if (s.boxCm === undefined) bits.push('altura/distância não medida')
+      if (s.boxCm !== undefined) bits.push(`caixa ${fmt(s.boxCm, 0)} cm (altura da caixa, não do salto)`)
       if (s.landing !== undefined) bits.push(`aterragem ${s.landing}/5`)
       if (s.rpe !== undefined) bits.push(`esforço ${fmt(s.rpe)}/10`)
       break
@@ -92,6 +93,11 @@ export function setText(s: SetEntry, ex: SessionExercise): string {
       else bits.push('tempo não registado')
       if (s.rpe !== undefined) bits.push(`intensidade ${fmt(s.rpe)}/10`)
       if (s.restS !== undefined) bits.push(`descanso ${fmt(s.restS, 0)} s`)
+      break
+    }
+    case 'cardio': {
+      bits.push(s.timeS !== undefined ? `${fmt(s.timeS / 60, 0)} min` : 'duração não registada')
+      if (s.rpe !== undefined) bits.push(`esforço ${fmt(s.rpe)}/10`)
       break
     }
     case 'agility': {
@@ -112,10 +118,10 @@ function exerciseLines(snap: Snapshot, session: Session, ex: SessionExercise, in
   const def = snap.exMap.get(ex.exerciseId)
   const lines: string[] = []
   const plan = ex.plan && ex.logType === 'strength' ? ` (plano ${ex.plan.sets} × ${ex.plan.repMin === ex.plan.repMax ? ex.plan.repMin : `${ex.plan.repMin}–${ex.plan.repMax}`})` : ex.plan?.label ? ` (${ex.plan.label})` : ''
-  lines.push(`${ex.name}${plan}:`)
+  lines.push(`${ex.name}${ex.optional ? ' [opcional]' : ''}${plan}:`)
   const done = ex.sets.filter((s) => s.done)
   if (!done.length) {
-    lines.push(`${indent}não realizado`)
+    lines.push(`${indent}${ex.optional ? 'opcional — não realizado (não penaliza)' : 'não realizado'}`)
     return lines
   }
   if (ex.logType === 'checklist') {
@@ -182,6 +188,24 @@ function swimLines(s: Session, indent = '  '): string[] {
   return lines
 }
 
+/** Séries planeadas (fase atual) vs. concluídas; os exercícios opcionais não entram na contagem do plano. */
+export function plannedVsDone(s: Session): { planned: number; done: number; optionalDone: number } {
+  let planned = 0
+  let done = 0
+  let optionalDone = 0
+  for (const ex of s.exercises) {
+    const d = ex.sets.filter((x) => x.done).length
+    if (ex.optional) {
+      optionalDone += d
+      continue
+    }
+    if (ex.logType === 'swim') continue
+    planned += ex.plan?.sets ?? ex.sets.length
+    done += d
+  }
+  return { planned: s.plannedSets ?? planned, done, optionalDone }
+}
+
 function statusPT(s: Session): string {
   return s.status === 'completed' ? 'concluído' : s.status === 'partial' ? 'parcialmente concluído' : 'em curso'
 }
@@ -193,7 +217,10 @@ export function sessionBlock(snap: Snapshot, s: Session): string[] {
   if (s.endedAt) meta.push(`Duração: ${humanDuration((s.endedAt - s.startedAt) / 1000)}`)
   if (s.rpe !== undefined) meta.push(`Esforço da sessão: ${fmt(s.rpe)}/10`)
   if (s.phase) meta.push(`Fase ${s.phase}${s.programWeek ? `, semana ${s.programWeek}` : ''}`)
+  if (s.variant) meta.push(`Variante ${s.variant}`)
   lines.push(meta.join(' | '))
+  const pr = plannedVsDone(s)
+  if (pr.planned > 0) lines.push(`Séries planeadas vs realizadas: ${pr.done}/${pr.planned}${pr.optionalDone ? ` (+ ${pr.optionalDone} de exercícios opcionais)` : ''}`)
   for (const ex of s.exercises) {
     if (ex.logType === 'swim') continue
     lines.push(...exerciseLines(snap, s, ex))
@@ -575,6 +602,9 @@ export interface JsonReport {
     durationSec?: number
     programWeek?: number
     phase?: number
+    variant?: string
+    plannedSets?: number
+    doneSets?: number
     rpe?: number
     notes?: string
     volumeKg: number
@@ -582,6 +612,7 @@ export interface JsonReport {
       exerciseId: string
       name: string
       logType: string
+      optional?: boolean
       plan?: { sets: number; repMin: number; repMax: number }
       notes?: string
       surface?: string
@@ -627,6 +658,9 @@ export function buildJsonReport(snap: Snapshot, from: ISODate, to: ISODate): Jso
       durationSec: s.endedAt ? Math.round((s.endedAt - s.startedAt) / 1000) : undefined,
       programWeek: s.programWeek,
       phase: s.phase,
+      variant: s.variant,
+      plannedSets: plannedVsDone(s).planned,
+      doneSets: plannedVsDone(s).done,
       rpe: s.rpe,
       notes: s.notes,
       volumeKg: sessionVolume(s),
@@ -637,6 +671,7 @@ export function buildJsonReport(snap: Snapshot, from: ISODate, to: ISODate): Jso
           exerciseId: e.exerciseId,
           name: e.name,
           logType: e.logType,
+          optional: e.optional,
           plan: e.plan ? { sets: e.plan.sets, repMin: e.plan.repMin, repMax: e.plan.repMax } : undefined,
           notes: e.notes,
           surface: e.surface,

@@ -1,7 +1,7 @@
 // Operações puras sobre sessões de treino (imutáveis) — usadas pela UI e pelos testes.
 
 import { makeSet, uid } from './calc'
-import { adjustPlan, programPosition } from './program'
+import { adjustPlan, PROGRAM_VERSION, programPosition } from './program'
 import type {
   ExerciseDef,
   ISODate,
@@ -10,6 +10,7 @@ import type {
   SessionKind,
   SetEntry,
   Settings,
+  Variant,
   WorkoutTemplate,
 } from './types'
 
@@ -23,6 +24,8 @@ export interface BuildOpts {
   settings: Settings
   exMap: ExMap
   now?: number
+  /** Variante escolhida (treinos com variantes A/B). */
+  variant?: Variant
 }
 
 export function sessionExerciseFromDef(def: ExerciseDef, restSec: number, plan?: SessionExercise['plan'], nSets = 3): SessionExercise {
@@ -42,19 +45,24 @@ export function buildSession(o: BuildOpts): Session {
   const now = o.now ?? Date.now()
   const pos = programPosition(o.date, o.settings)
   const exercises: SessionExercise[] = []
+  const variant = o.template?.variants ? (o.variant ?? 'A') : undefined
   for (const tex of o.template?.exercises ?? []) {
+    // exercícios de uma variante só entram se for a variante escolhida
+    if (tex.variant && tex.variant !== variant) continue
     const def = o.exMap.get(tex.exerciseId)
-    const adj = adjustPlan(tex, def, pos)
+    const adj = adjustPlan(tex, def, pos, { reduce: o.settings.program.reduceVolume })
+    if (adj.skip) continue
     exercises.push({
       id: uid('sx'),
       exerciseId: tex.exerciseId,
       name: def?.namePt ?? tex.exerciseId,
       logType: def?.logType ?? 'strength',
       primary: def?.primary ?? 'corpo-inteiro',
-      plan: { sets: adj.sets, repMin: tex.repMin, repMax: tex.repMax, label: tex.label },
+      plan: { sets: adj.sets, repMin: adj.repMin ?? tex.repMin, repMax: adj.repMax ?? tex.repMax, label: adj.label ?? tex.label },
       restSec: tex.restSec,
       sets: Array.from({ length: Math.max(1, adj.sets) }, () => makeSet()),
       phaseNote: adj.note,
+      optional: tex.optional || undefined,
     })
   }
   return {
@@ -68,6 +76,8 @@ export function buildSession(o: BuildOpts): Session {
     exercises,
     programWeek: pos.week,
     phase: pos.phase,
+    variant,
+    programV: PROGRAM_VERSION,
     planned: !!o.template,
     updatedAt: now,
   }
@@ -78,7 +88,7 @@ function mapEx(s: Session, exId: string, fn: (e: SessionExercise) => SessionExer
 }
 
 export function addExercise(s: Session, def: ExerciseDef, restSec: number): Session {
-  const nSets = def.logType === 'checklist' ? 1 : 3
+  const nSets = def.logType === 'checklist' || def.logType === 'cardio' ? 1 : 3
   const plan = def.logType === 'strength' ? { sets: nSets, repMin: 8, repMax: 12 } : undefined
   return { ...s, exercises: [...s.exercises, sessionExerciseFromDef(def, restSec, plan, nSets)] }
 }
@@ -145,7 +155,7 @@ export function toggleSetDone(s: Session, exId: string, setId: string, now = Dat
   if (!ex || !set) return s
   const done = !set.done
   let next = updateSet(s, exId, setId, { done, doneAt: done ? now : undefined })
-  if (done && ex.restSec > 0 && ex.logType !== 'checklist') {
+  if (done && ex.restSec > 0 && ex.logType !== 'checklist' && ex.logType !== 'cardio') {
     next = { ...next, rest: { endsAt: now + ex.restSec * 1000, durationSec: ex.restSec, exerciseName: ex.name } }
   }
   return next
@@ -165,10 +175,14 @@ export function adjustRest(s: Session, deltaSec: number, now = Date.now()): Sess
   return { ...s, rest: { ...s.rest, endsAt, durationSec: Math.max(5, s.rest.durationSec + deltaSec), alerted: false } }
 }
 
-/** Uma sessão é "concluída" se todos os exercícios têm pelo menos uma série feita; caso contrário, parcial. */
+/**
+ * Uma sessão é "concluída" se todos os exercícios obrigatórios têm pelo menos uma série feita;
+ * caso contrário, parcial. Exercícios opcionais (ex.: cardio) nunca tornam o treino incompleto.
+ */
 export function finalStatus(s: Session): 'completed' | 'partial' {
-  if (!s.exercises.length) return 'completed'
-  const allTouched = s.exercises.every((e) => e.sets.some((x) => x.done))
+  const required = s.exercises.filter((e) => !e.optional)
+  if (!required.length) return 'completed'
+  const allTouched = required.every((e) => e.sets.some((x) => x.done))
   return allTouched ? 'completed' : 'partial'
 }
 
@@ -189,6 +203,7 @@ function hasData(x: SetEntry): boolean {
     x.timeS !== undefined ||
     x.distanceM !== undefined ||
     x.heightCm !== undefined ||
-    x.distanceCm !== undefined
+    x.distanceCm !== undefined ||
+    x.boxCm !== undefined
   )
 }

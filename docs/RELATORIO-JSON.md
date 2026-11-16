@@ -15,9 +15,9 @@ Relatórios → **Exportar relatório em JSON**. É uma *fotografia de um perío
 ## Secções
 
 - **`sessions[]`** — sessões **terminadas** no período.
-  - `id`, `date`, `name`, `kind`, `status` (`completed` / `partial`), `startedAt`, `endedAt`, `durationSec`, `programWeek`, `phase`, `rpe`, `notes`, `volumeKg`.
-  - `exercises[]`: `exerciseId`, `name`, `logType` (`strength|jump|sprint|agility|checklist|swim`), `plan {sets, repMin, repMax}`, `notes`, `surface`, `course`, `volumeKg`, `estimated1RMKg` (estimativa de Epley, só exercícios marcados e 1–10 reps; ausente caso contrário) e `sets[]`.
-  - `sets[]`: `type` (`normal|warmup|drop|failure`), `done`, e conforme o tipo `weightKg`, `reps`, `rpe`, `rir`, `heightCm`, `distanceCm`, `landing`, `distanceM`, `timeS`, `restS`, `notes`, …
+  - `id`, `date`, `name`, `kind`, `status` (`completed` / `partial`), `startedAt`, `endedAt`, `durationSec`, `programWeek`, `phase` (1–4), `variant` (`A`/`B`, só no sábado), `plannedSets` e `doneSets` (séries obrigatórias planeadas vs. concluídas; os exercícios opcionais não contam), `rpe`, `notes`, `volumeKg`.
+  - `exercises[]`: `exerciseId`, `name`, `logType` (`strength|jump|sprint|agility|checklist|swim|cardio`), `optional`, `plan {sets, repMin, repMax}`, `notes`, `surface`, `course`, `volumeKg`, `estimated1RMKg` (estimativa de Epley, só exercícios marcados e 1–10 reps; ausente caso contrário) e `sets[]`.
+  - `sets[]`: `type` (`normal|warmup|drop|failure`), `done`, e conforme o tipo `weightKg`, `reps`, `rpe`, `rir`, `heightCm` (altura do salto), `boxCm` (altura da caixa — não é altura de salto), `distanceCm`, `landing`, `distanceM`, `timeS`, `restS`, `notes`, …
   - `swim`: `pool`, `laps`, `distanceM`, `totalSec`, `effectiveSec`, `stroke`, `restsCount`, `rpe`, `notes`.
 - **`body[]`** — registos corporais (`date`, `weightKg`, `waistCm`, `chestCm`, `armCm`, `thighCm`, `hipCm`, `bodyFatPct`, `notes`). `bodyFatPct` só existe se foi **medida**.
 - **`nutrition[]`** — por dia: `totals {kcal, protein, carbs, fat}`, `target`, `meals[]`.
@@ -44,11 +44,11 @@ Relatórios → **Exportar relatório em JSON**. É uma *fotografia de um perío
   "sessions": [
     {
       "date": "2026-11-17",
-      "name": "Upper Strength",
+      "name": "Push",
       "status": "completed",
       "volumeKg": 480,
       "exercises": [
-        { "name": "Supino plano", "logType": "strength", "estimated1RMKg": 76,
+        { "name": "Supino plano com barra", "logType": "strength", "estimated1RMKg": 76,
           "sets": [{ "type": "normal", "done": true, "weightKg": 60, "reps": 8 }] }
       ]
     }

@@ -24,7 +24,9 @@ Princípios que **não se devem quebrar**:
 
 ## Alterar o plano oficial
 
-`defaultTemplates()` em `src/lib/program.ts`. Os utilizadores existentes mantêm o que têm; "Repor plano oficial" (Definições) reaplica os modelos oficiais sem apagar histórico.
+`defaultTemplates()` em `src/lib/program.ts` (versão do programa em `PROGRAM_VERSION`). Cada exercício do modelo pode ter `phases` (prescrição por fase), `fromPhase` (só entra a partir da fase N), `variant` (A/B) e `optional`. `adjustPlan` aplica-os por esta ordem: fromPhase → `phases` → regra genérica → redução de volume.
+
+Para trocar de programa no futuro: acrescentar a nova lista, arquivar (`archived: true`) os modelos anteriores e escrever uma migração idempotente em `repo.ts` (ver `applyProgramV2`, também chamada após importar backups). **Nunca apagar modelos nem sessões**: as sessões guardam uma cópia dos exercícios. "Repor plano oficial" (Definições) reaplica os modelos atuais sem apagar histórico.
 
 ## Adicionar um exercício à biblioteca
 

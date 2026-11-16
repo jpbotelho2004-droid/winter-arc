@@ -173,7 +173,7 @@ export default function TemplateEditor() {
           <Trash2 size={18} /> Remover do plano
         </button>
       </div>
-      {t.id.startsWith('tpl-') && !t.id.startsWith('tpl-' + 'x') && (
+      {t.id.startsWith('tpl-') && (
         <button className="btn-ghost mt-3 w-full" onClick={() => setReset(true)}>
           Repor plano oficial
         </button>

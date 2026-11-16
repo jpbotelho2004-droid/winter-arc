@@ -46,7 +46,12 @@ function StatusIcon({ s }: { s: DayStatus }) {
 }
 
 function shortName(n: string): string {
-  return n.replace('Lower Strength + Pliometria', 'Lower + Pliom.').replace('Lower Power + Hypertrophy', 'Lower Power').replace('Upper Hypertrophy', 'Upper Hyp.').replace('Speed & Agility', 'Speed & Agil.')
+  return n
+    .replace('Swimming — Natação', 'Natação')
+    .replace('Lower Strength & Vertical Jump', 'Lower + Salto')
+    .replace('Upper Hypertrophy & Core', 'Upper + Core')
+    .replace('Lower Hypertrophy & Explosive Speed', 'Lower + Speed')
+    .replace('Rest & Recovery', 'Descanso')
 }
 
 export default function Home() {

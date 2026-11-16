@@ -11,7 +11,7 @@ test.describe('Winter Arc — fluxos principais', () => {
     }
     await go(page, '/#/treinar')
     const plan = page.getByTestId('week-plan')
-    for (const n of ['Natação', 'Upper Strength', 'Lower Strength', 'Upper Hypertrophy', 'Speed', 'Lower Power', 'Descanso']) {
+    for (const n of ['Natação', 'Push', 'Pull', 'Lower Strength', 'Upper Hypertrophy', 'Explosive Speed', 'Descanso']) {
       await expect(plan).toContainText(n)
     }
   })
@@ -25,10 +25,10 @@ test.describe('Winter Arc — fluxos principais', () => {
     await expect(page.locator('body')).toContainText(/Bench Press/i)
   })
 
-  test('5–10. fluxo de aceitação: Terça Upper Strength → Supino 60×8 → descanso → terminar → persistência → evolução', async ({ page }) => {
+  test('5–10. fluxo de aceitação: Terça Push → Supino 60×8 → descanso → terminar → persistência → evolução', async ({ page }) => {
     await openApp(page)
     await startWeekday(page, 2)
-    await expect(page.getByTestId('workout-title')).toContainText(/Upper Strength/i)
+    await expect(page.getByTestId('workout-title')).toContainText(/Push/i)
     await expect(page.getByTestId('exercise-card').filter({ hasText: /Supino plano/i }).first()).toBeVisible()
 
     await logSet(page, /Supino plano/i, 0, '60', '8')
@@ -49,7 +49,7 @@ test.describe('Winter Arc — fluxos principais', () => {
     // reabrir a app: histórico e evolução têm o registo
     await go(page, '/#/historico')
     await page.reload()
-    await expect(page.getByTestId('history-list')).toContainText(/Upper Strength/i)
+    await expect(page.getByTestId('history-list')).toContainText(/Push/i)
     await go(page, '/#/evolucao?tab=forca')
     await page.reload()
     await expect(page.getByRole('main')).toContainText(/60/)
@@ -208,7 +208,7 @@ test.describe('Winter Arc — fluxos principais', () => {
     await page.getByTestId('confirm-yes').click()
     await expect(page.getByTestId('import-result')).toBeVisible()
     await go(page, '/#/historico')
-    await expect(page.getByTestId('history-list')).toContainText(/Upper Strength/i)
+    await expect(page.getByTestId('history-list')).toContainText(/Push/i)
     await go(page, '/#/evolucao?tab=corpo')
     await expect(page.locator('body')).toContainText(/80,2/)
   })
@@ -234,13 +234,44 @@ test.describe('Winter Arc — fluxos principais', () => {
     await openApp(page, '/#/calendario')
     await expect(page.getByTestId('cal-title')).toBeVisible()
     await go(page, '/#/dia/2026-11-17')
-    await expect(page.getByTestId('day-item').first()).toContainText(/Upper Strength/i)
+    await expect(page.getByTestId('day-item').first()).toContainText(/Push/i)
   })
 
   test('programa: fases visíveis e prolongar fase exige confirmação', async ({ page }) => {
     await openApp(page, '/#/programa')
-    for (const n of [1, 2, 3]) await expect(page.getByTestId(`phase-${n}`)).toBeVisible()
+    for (const n of [1, 2, 3, 4]) await expect(page.getByTestId(`phase-${n}`)).toBeVisible()
     await expect(page.getByTestId('plyo-card')).toBeVisible()
+  })
+
+  test('sábado: pergunta a variante (A saltos / B sprints) e monta a sessão certa', async ({ page }) => {
+    await openApp(page)
+    await go(page, '/#/treinar')
+    await page.getByTestId('start-6').click()
+    await expect(page.getByTestId('variant-picker')).toBeVisible()
+    await page.getByTestId('variant-A').click()
+    await expect(page.getByTestId('workout-title')).toContainText(/Explosive Speed/i)
+    await expect(page.getByTestId('exercise-card').filter({ hasText: /Pogo/i }).first()).toBeVisible()
+    await expect(page.getByTestId('exercise-card').filter({ hasText: /Acelera/i })).toHaveCount(0)
+    await expect(page.getByTestId('exercise-card').filter({ hasText: /Leg press/i }).first()).toBeVisible()
+  })
+
+  test('sexta: cardio opcional aparece marcado e não é listado como em falta ao terminar', async ({ page }) => {
+    await openApp(page)
+    await startWeekday(page, 5)
+    await expect(page.getByTestId('optional-chip').first()).toBeVisible()
+    await page.getByTestId('finish-workout').click()
+    await expect(page.getByTestId('confirm-finish')).toBeVisible()
+    await expect(page.getByRole('dialog')).not.toContainText(/Bicicleta/i)
+  })
+
+  test('programa: reduzir volume diminui as séries da sessão seguinte', async ({ page }) => {
+    await openApp(page, '/#/programa')
+    await page.getByTestId('reduce-volume').click()
+    await expect(page.getByTestId('reduce-volume')).toBeChecked()
+    await startWeekday(page, 2)
+    const card = page.getByTestId('exercise-card').filter({ hasText: /Supino plano/i }).first()
+    await expect(card.getByTestId('done-0')).toBeVisible()
+    await expect(card.getByTestId('done-1')).toHaveCount(0)
   })
 
   test('definições: tema claro/escuro persiste', async ({ page }) => {

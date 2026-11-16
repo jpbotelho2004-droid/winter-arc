@@ -1,20 +1,20 @@
 # Testes e verificação
 
-Resultados da última execução (13/11/2026, macOS, Node 26):
+Resultados da última execução (16/11/2026, macOS, Node 26) — programa de treino v2:
 
 | Verificação | Comando | Resultado |
 | --- | --- | --- |
 | Tipos (strict, sem variáveis por usar) | `npx tsc --noEmit --noUnusedLocals --noUnusedParameters` | ✅ 0 erros |
-| Unitários + dados (Vitest, `fake-indexeddb`) | `npm test` | ✅ 66/66 |
+| Unitários + dados (Vitest, `fake-indexeddb`) | `npm test` | ✅ 85/85 |
 | Build de produção + PWA | `npm run build` | ✅ 44 ficheiros em pré‑cache, `sw.js` + manifest |
-| E2E iPhone 13 (WebKit) | `npm run test:e2e` | ✅ 21 passam, 1 saltado |
-| E2E Desktop (Chromium) | `npm run test:e2e` | ✅ 22/22 |
+| E2E iPhone 13 (WebKit) | `npm run test:e2e` | ✅ 24 passam, 1 saltado |
+| E2E Desktop (Chromium) | `npm run test:e2e` | ✅ 25/25 |
 
-Total E2E: **43 passam, 1 saltado** (o teste de modo offline corre só em Chromium).
+Total E2E: **49 passam, 1 saltado** (o teste de modo offline corre só em Chromium).
 
 ## O que cobrem os testes automáticos
 
-**Unitários/dados (`src/lib/*.test.ts`)**: cálculos (volume, e1RM de Epley só 1–10 reps, ritmo, parsing/limites), datas (Lisboa, semanas, mês), programa (fases, prolongar fase, ajuste de volume por fase, estados do dia), progressão dupla, PRs (só valores medidos; sprint 10 m ≠ 20 m), fluxos de base de dados (sessão ativa única, retomar, descartar, finalizar), histórico imutável face a edição de modelos, relatórios (texto e JSON, "sem registo" ≠ 0), recuperação (conselhos prudentes), **backup**: exportar → validar → importar em fundir/substituir, deduplicação, ficheiros inválidos rejeitados sem alterar dados, sessão ativa importada com outra já ativa passa a parcial. A cadeia de migrações de esquema existe, mas como só há a versão 1 do esquema **não foi exercitada** na prática.
+**Unitários/dados (`src/lib/*.test.ts`)**: cálculos (volume, e1RM de Epley só 1–10 reps, ritmo, parsing/limites), datas (Lisboa, semanas, mês), programa v2 (estrutura de cada treino: 19/18/18/21/14 séries, ordem explosivo→pesado, 4 fases, conversão `[3,7]`→`[3,5,9]`, prolongar fase, ajuste de volume por fase, Box Jump só na fase 2, sprint de 20 m só na fase 3, reduzir volume, estados do dia), **migração do plano antigo** (arquivado, não apagado; histórico intacto; idempotente; também ao importar cópias antigas), variantes A/B, exercício opcional que não afeta a conclusão, séries planeadas vs. realizadas nos relatórios, altura da caixa ≠ altura de salto, progressão dupla, PRs (só valores medidos; sprint 10 m ≠ 20 m), fluxos de base de dados (sessão ativa única, retomar, descartar, finalizar), histórico imutável face a edição de modelos, relatórios (texto e JSON, "sem registo" ≠ 0), recuperação (conselhos prudentes), **backup**: exportar → validar → importar em fundir/substituir, deduplicação, ficheiros inválidos rejeitados sem alterar dados, sessão ativa importada com outra já ativa passa a parcial. A cadeia de migrações de esquema existe, mas como só há a versão 1 do esquema **não foi exercitada** na prática.
 
 **E2E (`e2e/winter-arc.spec.ts`)** — mapeamento com os 24 cenários pedidos:
 
@@ -64,3 +64,9 @@ npm run typecheck && npm test && npm run test:e2e
 ```
 
 O `test:e2e` faz `npm run build` e serve `dist` com `vite preview` na porta 4173 (reutiliza um servidor já a correr nessa porta).
+
+## Notas da atualização do programa (v2)
+
+- O E2E acrescenta: variante A/B de sábado, cardio opcional de sexta e redução de volume. Os restantes cenários foram adaptados ao novo plano (terça = Push).
+- A medição do salto vertical (alcance em pé vs. alcance no ponto mais alto) é uma convenção de registo; a app não mede saltos.
+- Não há imagens demonstrativas nem vídeos incorporados: o link de vídeo é sempre uma pesquisa rotulada.

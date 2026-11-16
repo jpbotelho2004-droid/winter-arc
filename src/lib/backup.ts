@@ -2,6 +2,7 @@
 
 import { db } from './db'
 import { isValidISO } from './dates'
+import { applyProgramV2 } from './repo'
 import { BACKUP_APP, BACKUP_SCHEMA_VERSION, BACKUP_TABLES, type BackupTable } from './types'
 
 export const APP_VERSION = '1.0.0'
@@ -289,6 +290,10 @@ export async function importBackup(file: BackupFile, mode: ImportMode): Promise<
       }
       if (toPut.length) await table.bulkPut(toPut)
     }
+  })
+  // depois de importar (ex.: cópia antiga com o plano anterior), garante o programa atual sem apagar nada
+  await db.transaction('rw', db.settings, db.templates, async () => {
+    await applyProgramV2()
   })
   return { plan }
 }

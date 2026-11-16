@@ -109,7 +109,7 @@ function ActiveWorkout({ id }: { id: string }) {
 
   const counts = sessionSetsCount(session)
   const phase = session.phase ? PHASES[session.phase - 1] : undefined
-  const untouched = session.exercises.filter((e) => !e.sets.some((s) => s.done))
+  const untouched = session.exercises.filter((e) => !e.optional && !e.sets.some((s) => s.done))
 
   const doFinish = async () => {
     setBusy(true)
@@ -133,6 +133,7 @@ function ActiveWorkout({ id }: { id: string }) {
             </h1>
             <p className="mt-1 truncate text-xs text-muted">
               {formatLong(session.date)} · início {formatTimePT(session.startedAt)}
+              {session.variant ? ` · variante ${session.variant}` : ''}
             </p>
           </div>
           <div className="text-right">

@@ -2,7 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Check, Zap } from 'lucide-react'
 import { formatDatePT, todayISO } from '../lib/dates'
-import { PHASES, PLYO_LEVELS, extendPhase, programPosition, phaseStartWeek } from '../lib/program'
+import { PHASES, PLYO_LEVELS, extendPhase, programPosition, phaseStartWeek, phaseEndWeek } from '../lib/program'
 import { updateSettings } from '../lib/repo'
 import { recoveryAdvice } from '../lib/stats'
 import { Confirm, Field, Loading, Notice, PageHeader, Progress, Section, useToast } from '../components/ui'
@@ -52,7 +52,7 @@ export default function ProgramPage() {
         </div>
       )}
 
-      {!pos.beforeStart && pos.phase < 3 && (
+      {!pos.beforeStart && pos.phase < 4 && (
         <Section title="Passagem de fase">
           <div className="card space-y-3 p-4">
             <p className="text-sm">
@@ -66,7 +66,9 @@ export default function ProgramPage() {
             <button data-testid="extend-phase" className="btn-soft w-full" onClick={() => setConfirmExtend(true)}>
               Prolongar a fase {pos.phase} em +1 semana
             </button>
-            <p className="text-xs text-muted">Atualmente a fase 2 começa na semana {starts[0]} e a fase 3 na semana {starts[1]}.</p>
+            <p className="text-xs text-muted">
+              Atualmente a fase 2 começa na semana {starts[0]}, a fase 3 na semana {starts[1]} e a fase 4 na semana {starts[2]}.
+            </p>
           </div>
         </Section>
       )}
@@ -75,7 +77,7 @@ export default function ProgramPage() {
         <div className="space-y-3">
           {PHASES.map((p) => {
             const startW = phaseStartWeek(p.n, starts)
-            const endW = p.n === 1 ? starts[0] - 1 : p.n === 2 ? starts[1] - 1 : 12
+            const endW = phaseEndWeek(p.n, starts)
             const current = !pos.beforeStart && pos.phase === p.n
             return (
               <div key={p.n} className={`card p-4 ${current ? '!border-accent' : ''}`} data-testid={`phase-${p.n}`}>
@@ -102,7 +104,25 @@ export default function ProgramPage() {
         </div>
       </Section>
 
-      <Section title="Pliometria">
+      <Section title="Fadiga ou dor">
+        <div className="card space-y-3 p-4" data-testid="reduce-card">
+          <p className="text-sm">
+            Se estás com fadiga elevada ou dor articular, reduz o volume (menos 1 série nos exercícios e sem séries extra) em vez de forçar. <strong>Não progrides carga com dor.</strong> Podes também repetir a semana ou prolongar a fase acima.
+          </p>
+          <label className="flex items-center gap-3 text-sm">
+            <input
+              type="checkbox"
+              data-testid="reduce-volume"
+              className="h-5 w-5 accent-[var(--color-accent)]"
+              checked={!!s.program.reduceVolume}
+              onChange={(e) => updateSettings({ program: { ...s.program, reduceVolume: e.target.checked } })}
+            />
+            Reduzir volume nas próximas sessões
+          </label>
+        </div>
+      </Section>
+
+      <Section title="Pliometria e velocidade">
         <div className="card space-y-3 p-4" data-testid="plyo-card">
           <p className="flex items-center gap-2 font-semibold">
             <Zap size={18} className="text-accent" /> {PLYO_LEVELS[s.program.plyoLevel].name}
@@ -133,7 +153,7 @@ export default function ProgramPage() {
         confirmLabel="Prolongar +1 semana"
         onCancel={() => setConfirmExtend(false)}
         onConfirm={async () => {
-          await updateSettings({ program: { ...s.program, phaseStarts: extendPhase(starts, pos.phase as 1 | 2, 1) } })
+          await updateSettings({ program: { ...s.program, phaseStarts: extendPhase(starts, pos.phase as 1 | 2 | 3, 1) } })
           setConfirmExtend(false)
           toast('Fase prolongada em 1 semana.')
         }}

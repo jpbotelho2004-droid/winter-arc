@@ -3,7 +3,7 @@
 import { db } from './db'
 import { addDays, startOfWeek, todayISO, weekdayISO } from './dates'
 import { builtinExercise, LIBRARY } from './exercises'
-import { DEFAULT_PHASE_STARTS, defaultTemplates } from './program'
+import { DEFAULT_PHASE_STARTS, PROGRAM_VERSION, V1_TEMPLATE_IDS, V2_MARKER_ID, defaultTemplates, normalizePhaseStarts } from './program'
 import { buildSession, finishSessionPure, type ExMap } from './sessionOps'
 import type {
   Assessment,
@@ -19,6 +19,7 @@ import type {
   ScheduleOverride,
   Session,
   Settings,
+  Variant,
   WorkoutTemplate,
 } from './types'
 import { uid } from './calc'
@@ -48,16 +49,40 @@ export function defaultSettings(today: ISODate = todayISO(), now = Date.now()): 
   }
 }
 
-/** Cria as definições e o plano oficial na primeira utilização. Nunca cria dados de treino. */
+/**
+ * Instala o programa v2 sem apagar nada: os 5 treinos de musculação do programa anterior são
+ * ARQUIVADOS (as sessões já registadas ficam intactas, pois guardam uma cópia dos exercícios),
+ * os treinos novos são acrescentados e Natação/Descanso são atualizados. Converte também as
+ * fases do formato antigo (3 fases) para o novo (4 fases). Idempotente e seguro de repetir
+ * (ex.: depois de importar uma cópia de segurança antiga). Deve correr dentro de uma transação.
+ */
+export async function applyProgramV2(now = Date.now()): Promise<void> {
+  const hasV2 = !!(await db.templates.get(V2_MARKER_ID))
+  if (!hasV2) await db.templates.bulkPut(defaultTemplates(now))
+  for (const id of V1_TEMPLATE_IDS) {
+    const t = await db.templates.get(id)
+    if (t && !t.archived) await db.templates.put({ ...t, archived: true, updatedAt: now })
+  }
+  const s = await db.settings.get('main')
+  if (s) {
+    const phaseStarts = normalizePhaseStarts(s.program?.phaseStarts)
+    if (s.program?.phaseStarts?.length !== 3 || s.programVersion !== PROGRAM_VERSION) {
+      await db.settings.put({ ...s, program: { ...s.program, phaseStarts }, programVersion: PROGRAM_VERSION, updatedAt: now })
+    }
+  }
+}
+
+/** Cria as definições e o plano na primeira utilização e migra para o programa v2. Nunca cria dados de treino. */
 export async function ensureSeeded(): Promise<Settings> {
   return db.transaction('rw', db.settings, db.templates, async () => {
     let s = await db.settings.get('main')
     if (!s) {
-      s = defaultSettings()
+      s = { ...defaultSettings(), programVersion: PROGRAM_VERSION }
       await db.settings.put(s)
     }
     if ((await db.templates.count()) === 0) await db.templates.bulkPut(defaultTemplates())
-    return s
+    await applyProgramV2()
+    return (await db.settings.get('main')) as Settings
   })
 }
 
@@ -72,7 +97,7 @@ export async function updateSettings(patch: Partial<Settings>): Promise<Settings
   return next
 }
 
-/** Repõe o plano oficial. Mantém treinos personalizados e todo o histórico. */
+/** Repõe o plano oficial (v2). Mantém treinos personalizados, o plano anterior arquivado e todo o histórico. */
 export async function resetOfficialPlan(): Promise<void> {
   await db.templates.bulkPut(defaultTemplates())
 }
@@ -88,13 +113,13 @@ export async function getActiveSession(): Promise<Session | undefined> {
   return db.sessions.where('status').equals('active').first()
 }
 
-export async function startSessionFromTemplate(templateId: string, date: ISODate = todayISO()): Promise<Session> {
+export async function startSessionFromTemplate(templateId: string, date: ISODate = todayISO(), variant?: Variant): Promise<Session> {
   const existing = await getActiveSession()
   if (existing) return existing
   const template = await db.templates.get(templateId)
   if (!template) throw new Error('Treino não encontrado.')
   const settings = await getSettings()
-  const session = buildSession({ template, date, settings, exMap: await exerciseMap() })
+  const session = buildSession({ template, date, settings, exMap: await exerciseMap(), variant })
   await db.sessions.add(session)
   return session
 }
